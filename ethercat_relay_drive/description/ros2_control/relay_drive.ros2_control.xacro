@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="relay_drive">
+
+    <ros2_control name="ethercat_relay_system" type="system">
+      <hardware>
+        <plugin>ethercat_driver/EthercatDriver</plugin>
+        <param name="master_id">0</param>
+        <param name="control_frequency">100</param>
+      </hardware>
+
+      <!--
+        EK1100 (position 0) is a passive coupler — no ec_module entry needed.
+      -->
+
+      <!-- EL2622 — 2-channel relay output at bus position 1 -->
+      <gpio name="relays">
+        <command_interface name="relay_1"/>  <!-- 0.0 = open, 1.0 = closed -->
+        <command_interface name="relay_2"/>  <!-- 0.0 = open, 1.0 = closed -->
+
+        <ec_module name="EL2622">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">1</param>
+          <param name="slave_config">$(find ethercat_slave_description)/config/beckhoff/beckhoff_el2622.yaml</param>
+        </ec_module>
+      </gpio>
+
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

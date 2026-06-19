@@ -1,0 +1,20 @@
+# FSoE transfers for EL6900 (master) with EL1904 and EL2904.
+# Modules are declared in description/ros2_control/safety_test_drive.ros2_control.xacro.
+# Note: FSoE station addresses must be configured in TwinCAT before activating the safety project.
+
+nets:
+  - name: safety_net
+    safety_master: el6900
+    transfers:
+      - size: 6
+        in: {ec_module: el1904, index: 0x6000, subindex: 0x01}
+        out: {ec_module: el6900, index: 0x7000, subindex: 0x01}
+      - size: 6
+        in: {ec_module: el6900, index: 0x6000, subindex: 0x01}
+        out: {ec_module: el1904, index: 0x7000, subindex: 0x01}
+      - size: 6
+        in: {ec_module: el2904, index: 0x6000, subindex: 0x01}
+        out: {ec_module: el6900, index: 0x7010, subindex: 0x01}
+      - size: 6
+        in: {ec_module: el6900, index: 0x6010, subindex: 0x01}
+        out: {ec_module: el2904, index: 0x7000, subindex: 0x01}

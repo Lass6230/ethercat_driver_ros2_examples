@@ -1,0 +1,28 @@
+# =============================================================================
+# Controller manager + relay GPIO controller configuration
+#
+# Used by: relay_drive.launch.py
+#
+# Control relays via topic:
+#   ros2 topic pub --once /relay_gpio_controller/commands \
+#       control_msgs/msg/DynamicInterfaceGroupValues \
+#       "{interface_groups: ['relays'], interface_values: [{interface_names: ['relay_1', 'relay_2'], values: [1.0, 0.0]}]}"
+# =============================================================================
+
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz — must match control_frequency in the URDF
+
+    relay_gpio_controller:
+      type: gpio_controllers/GpioCommandController
+
+relay_gpio_controller:
+  ros__parameters:
+    gpios:
+      - relays              # must match <gpio name="relays"> in the URDF
+
+    command_interfaces:
+      relays:
+        interfaces:
+          - relay_1
+          - relay_2

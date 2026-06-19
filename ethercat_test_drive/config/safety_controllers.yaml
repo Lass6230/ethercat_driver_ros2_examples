@@ -1,0 +1,35 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    gpio_safety_controller:
+      type: gpio_controllers/GpioCommandController
+
+gpio_safety_controller:
+  ros__parameters:
+    gpios:
+      - el6900_gpio
+      - el1904_gpio
+
+    command_interfaces:
+      el6900_gpio:
+        interfaces:
+          - safety_states_control  # int16: Bit0=ErrAck, Bit1=Run/Stop
+          - restart_standard_input  # bit1: TwinSAFE standard input 1 for FBEstop1.Restart
+
+    state_interfaces:
+      el6900_gpio:
+        interfaces:
+          - safety_project_state
+          - login_active
+          - input_size_mismatch
+          - output_size_mismatch
+          - txpdo_state
+          - txpdo_toggle
+
+      el1904_gpio:
+        interfaces:
+          - estop_ch1
+          - estop_ch2
+          - estop_ch3
+          - estop_ch4

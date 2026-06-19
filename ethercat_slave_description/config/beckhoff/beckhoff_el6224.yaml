@@ -1,0 +1,178 @@
+# Configuration file for Beckhoff EL6224
+# Description : EtherCAT Terminal, 4-port IO-Link Master, Class A.
+#
+# Vendor ID:       0x00000002  (Beckhoff Automation)
+# Product code:    0x18503052
+# Revision:        0x00150000
+#
+# Bus topology (from `ethercat slaves`):
+#   Position 2:  EL6224  IO-Link Master
+#
+# =============================================================================
+# IO-Link Channel 1:  SICK DT35-B15551  Laser Distance Sensor
+#   IO-Link Rev:    1.1
+#   Vendor ID:      26  (0x001a)  — SICK AG
+#   Device ID:      6488065
+#   Process Data In: 16 bits (2 bytes), input only
+#   IO-Link COM2, min cycle time 2.3 ms
+#
+# IO-Link Channel 2:  OMRON E3AS-HL500LMT M3  CMOS Laser Sensor
+#   IO-Link Rev:    1.1
+#   Vendor ID:      612  (0x0264)  — OMRON Corporation
+#   Device ID:      65561
+#   Process Data In: 32 bits (4 bytes), input only — no output data
+#   IO-Link COM3, min cycle time 1.2 ms
+#
+#   ProcessDataIn layout used here (validated on this workspace):
+#     bytes[0:1]  Detection value output (UINT16_BE)
+#     byte[2]     Light intensity level (UINT8)
+#     byte[3]     status flags
+#       bit7 Error
+#       bit6 Warning
+#       bit4 Error (Insufficient Light Intensity)
+#       bit2 Instability Alarm (Low Light Intensity)
+#       bit1 Control Output2
+#       bit0 Control Output1
+#
+# IO-Link Channels 3–4:  unused (empty)
+# =============================================================================
+#
+# PDO layout (from `ethercat cstruct -p 2` in PREOP):
+#   SM2 (output): RxPDO 0x1600–0x1603  IO-Link output data Ch.1–4 (empty — both sensors are input-only)
+#   SM3 (input):  TxPDO 0x1a00         IO-Link input data Ch.1 (2 bytes from DT35)
+#                 TxPDO 0x1a01         IO-Link input data Ch.2 (4 bytes from E3AS)
+#                 TxPDO 0x1a02–0x1a03  IO-Link input data Ch.3–4 (empty)
+#                 TxPDO 0x1a80         DeviceState — port states Ch.1–4 (4 × uint8)
+#                 TxPDO 0x1a81         DeviceState — diag + device state bits
+#
+# IMPORTANT: The IO-Link data PDO 0x1a00 is empty while the EL6224 is in PREOP.
+# It gets populated after IO-Link negotiation completes (SAFEOP / OP).
+# Run `ethercat pdos -p 2` after OP to verify the actual entry index/subindex
+# for Ch.1 (DT35) and Ch.2 (E3AS), then update the TxPDO sections below.
+#
+# Typical EL6224 mapping:
+#   TxPDO 0x1a00  →  0x6000:01, 16 bit  (Ch.1 DT35)
+#   TxPDO 0x1a01  →  0x6010:01..08 + 2 gap bits (Ch.2 E3AS)
+#
+# ros2_control state_interfaces produced (read-only):
+#   <gpio_name>/distance               uint16  Ch.1 DT35 distance
+#   <gpio_name>/detection_value_ch2    uint16  Ch.2 detection value output
+#   <gpio_name>/light_intensity_ch2    uint8   Ch.2 light intensity level
+#   <gpio_name>/control_output1_ch2    bool    Ch.2 control output 1
+#   <gpio_name>/control_output2_ch2    bool    Ch.2 control output 2
+#   <gpio_name>/instability_alarm_ch2  bool    Ch.2 instability alarm
+#   <gpio_name>/error_low_light_ch2    bool    Ch.2 insufficient light error
+#   <gpio_name>/warning_ch2            bool    Ch.2 warning
+#   <gpio_name>/error_ch2              bool    Ch.2 error
+#   <gpio_name>/state_ch1        uint8   IO-Link port 1 state
+#   <gpio_name>/state_ch2        uint8   IO-Link port 2 state
+#   <gpio_name>/state_ch3        uint8   IO-Link port 3 state
+#   <gpio_name>/state_ch4        uint8   IO-Link port 4 state
+#   <gpio_name>/device_diag      bool    aggregated device diagnostic flag
+#   <gpio_name>/device_state     bool    aggregated device state flag
+
+vendor_id: 0x00000002
+product_id: 0x18503052
+
+# ---------------------------------------------------------------------------
+# SDO startup — enable IO-Link on ports 1 and 2
+#
+#   0x80n0:28  Master Control  (uint16)
+#     0 = Deactivated
+#     1 = IO-Link Auto (auto baud detect, auto negotiate)
+#     2 = IO-Link Specific (requires configured Device ID / Vendor ID)
+#     3 = Digital Input  (SIO mode)
+#     4 = Digital Output (SIO mode)
+#
+#   Ports 2–4 are left deactivated (default 0).
+#   To enable another port, add e.g.:
+#     - {index: 0x8010, sub_index: 0x28, type: uint16, value: 1}   # Port 2
+#
+#   EL6224 Port 1 settings object 0x8000 subindex map:
+#     :04  Device ID         (uint32)  — for IO-Link device validation
+#     :05  Vendor ID         (uint32)  — for IO-Link device validation
+#     :20  IO-Link Revision  (uint8)   — 0x11 = V1.1
+#     :21  Frame Capability  (uint8)   — M-sequence capability
+#     :22  Min Cycle Time    (uint8)   — IO-Link cycle time
+#     :23  Offset Time       (uint8)
+#     :24  PD Input Length   (uint8)   — process data bytes from device
+#     :25  PD Output Length  (uint8)   — process data bytes to device
+#     :28  Master Control    (uint16)  — port activation mode
+#
+#   CRITICAL: PD Input Length MUST be set so the EL6224 allocates the correct
+#   PDO data area. Without it, IO-Link process data is not forwarded to EtherCAT.
+# ---------------------------------------------------------------------------
+sdo:
+  # Authoritative TwinCAT startup sequence (exported from TwinCAT Startup tab).
+  # TwinCAT applies these via CoE complete-access writes to all four port config objects (0x8000-0x8030).
+  # For Linux/ethercat tools, we replicate the same effective values.
+  
+  # TwinCAT also pre-configures PDO assignment (0x1c12, 0x1c13) but detailed sequence varies.
+  # Below represents the effective RxPDO/TxPDO configuration seen in working capture:
+  - {index: 0x1c12, sub_index: 0x00, type: uint8,  value: 0}        # RxPDO assignment count (none for EL6224)
+  - {index: 0x1c13, sub_index: 0x00, type: uint8,  value: 0}        # Clear TxPDO assignment
+  - {index: 0x1c13, sub_index: 0x01, type: uint16, value: 0x1a05}   # TxPDO 1: DeviceState summary bits (0xf101)
+  - {index: 0x1c13, sub_index: 0x02, type: uint16, value: 0x1a04}   # TxPDO 2: DeviceState per-port bytes (0xf100)
+  - {index: 0x1c13, sub_index: 0x03, type: uint16, value: 0x1a00}   # TxPDO 3: IO-Link Ch.1 (DT35)
+  - {index: 0x1c13, sub_index: 0x04, type: uint16, value: 0x1a01}   # TxPDO 4: IO-Link Ch.2 (E3AS)
+  - {index: 0x1c13, sub_index: 0x00, type: uint8,  value: 4}        # TxPDO assignment count
+
+  # Port startup via complete access (exact TwinCAT PS InitCmd payloads)
+  - {index: 0x8000, sub_index: 0x01, complete_access: true, value_hex: "010063001a000000100117005000000000000300"}  # Ch1 DT35
+  - {index: 0x8010, sub_index: 0x01, complete_access: true, value_hex: "190001006402000011010c00c300000000002300"}  # Ch2 E3AS
+  - {index: 0x8020, sub_index: 0x01, complete_access: true, value_hex: "0000000000000000000000000000000000000000"}  # Ch3 off
+  - {index: 0x8030, sub_index: 0x01, complete_access: true, value_hex: "0000000000000000000000000000000000000000"}  # Ch4 off
+
+tpdo:
+  # IO-Link Ch.1 input data — SICK DT35-B15551 (2 bytes)
+  # NOTE: This entry is expected after IO-Link negotiation.  Verify the actual
+  #        index:subindex with `ethercat pdos -p 2` once the EL6224 is in OP.
+  #        If the mapping differs, update the index/sub_index below.
+  - index: 0x1a00
+    channels:
+      - {index: 0x6000, sub_index: 0x01, type: uint16_be, factor: 1.0, state_interface: distance}
+
+  # IO-Link Ch.2 input data — OMRON E3AS-HL500LMT (4 bytes)
+  - index: 0x1a01
+    channels:
+      - index: 0x6010
+        sub_index: 0x01
+        type: uint32
+        data_mapping:
+          - {addr_offset: 0, type: uint16_be, state_interface: detection_value_ch2}
+          - {addr_offset: 2, type: uint8, state_interface: light_intensity_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x01, state_interface: control_output1_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x02, state_interface: control_output2_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x04, state_interface: instability_alarm_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x10, state_interface: error_low_light_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x40, state_interface: warning_ch2}
+          - {addr_offset: 3, type: bool, mask: 0x80, state_interface: error_ch2}
+
+  # DeviceState TxPDO-Map Inputs — per-port state bytes (TwinCAT: 0x1A04)
+  - index: 0x1a04
+    channels:
+      - {index: 0xf100, sub_index: 0x01, type: uint8, state_interface: state_ch1}   # State Ch1
+      - {index: 0xf100, sub_index: 0x02, type: uint8, state_interface: state_ch2}   # State Ch2
+      - {index: 0xf100, sub_index: 0x03, type: uint8, state_interface: state_ch3}   # State Ch3
+      - {index: 0xf100, sub_index: 0x04, type: uint8, state_interface: state_ch4}   # State Ch4
+
+  # DeviceState TxPDO-Map Inputs — diagnostic / state summary bits (TwinCAT: 0x1A05)
+  - index: 0x1a05
+    channels:
+      - {index: 0x0000, sub_index: 0x00, type: bit12}                                         # Gap (12 bit)
+      - {index: 0xf101, sub_index: 0x0d, type: bool, mask: 0x10, state_interface: device_diag}   # Device Diag
+      - {index: 0x0000, sub_index: 0x00, type: bit2}                                          # Gap (2 bit)
+      - {index: 0xf101, sub_index: 0x10, type: bool, mask: 0x80, state_interface: device_state}  # Device State
+
+# ---------------------------------------------------------------------------
+# Sync Manager configuration
+#
+#   SM0 / SM1 : mailbox out / in (no process data)
+#   SM2       : process data output — DT35 has no output data, stays empty
+#   SM3       : process data input  — IO-Link Ch.1 data + device state PDOs
+# ---------------------------------------------------------------------------
+sm:
+  - {index: 0, type: output, pdo: ~, watchdog: disable}       # SM0  mailbox out
+  - {index: 1, type: input,  pdo: ~, watchdog: disable}       # SM1  mailbox in
+  - {index: 2, type: output, pdo: ~, watchdog: disable}       # SM2  RxPDO (empty — DT35 is input-only)
+  - {index: 3, type: input,  pdo: tpdo, watchdog: disable}    # SM3  TxPDO (IO-Link data + device state)

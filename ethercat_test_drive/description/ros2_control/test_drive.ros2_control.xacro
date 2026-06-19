@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="test_drive">
+
+    <ros2_control name="ethercat_test_system" type="system">
+      <hardware>
+        <plugin>ethercat_driver/EthercatDriver</plugin>
+        <param name="master_id">0</param>
+        <param name="control_frequency">100</param>
+      </hardware>
+
+      <!--
+        ═══════════════════════════════════════════════════════════════════
+        Bus topology  (from `ethercat slaves`):
+          Pos 0:  EK1100  EtherCAT Coupler        (passive — no ec_module)
+          Pos 1:  EL2002  2-ch Digital Output 24 V  (command: d_output.1, d_output.2)
+          Pos 2:  EL6224  4-port IO-Link Master     (state:   distance, state_ch1-4, …)
+          Pos 3:  EL1008  8-ch Digital Input 24 V   (state:   d_input.1 … d_input.8)
+          Pos 4:  EL2622  2-ch Relay Output         (command: relay_1, relay_2)
+          Pos 5:  EL6751  CANopen Master            (not used in this demo)
+        ═══════════════════════════════════════════════════════════════════
+      -->
+
+      <!-- ─── EL2002 — 2-channel digital output 24 V, 0.5 A (pos 1) ── -->
+      <gpio name="digital_outputs">
+        <command_interface name="d_output.1"/>  <!-- 0.0 = off, 1.0 = on -->
+        <command_interface name="d_output.2"/>  <!-- 0.0 = off, 1.0 = on -->
+
+        <ec_module name="EL2002">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">1</param>
+          <param name="slave_config">$(find ethercat_slave_description)/config/beckhoff/beckhoff_el2002.yaml</param>
+        </ec_module>
+      </gpio>
+
+      <!-- ─── EL6224 — IO-Link Master, Ch.1 = DT35, Ch.2 = E3AS-HL500LMT (pos 2) -->
+      <gpio name="iolink_sensor">
+        <state_interface name="distance"/>      <!-- Ch.1 DT35 distance in mm -->
+        <state_interface name="detection_value_ch2"/>      <!-- Ch.2 E3AS detection value -->
+        <state_interface name="light_intensity_ch2"/>      <!-- Ch.2 E3AS light intensity -->
+        <state_interface name="control_output1_ch2"/>      <!-- Ch.2 E3AS control output 1 -->
+        <state_interface name="control_output2_ch2"/>      <!-- Ch.2 E3AS control output 2 -->
+        <state_interface name="instability_alarm_ch2"/>    <!-- Ch.2 E3AS instability alarm -->
+        <state_interface name="error_low_light_ch2"/>      <!-- Ch.2 E3AS insufficient light error -->
+        <state_interface name="warning_ch2"/>              <!-- Ch.2 E3AS warning -->
+        <state_interface name="error_ch2"/>                <!-- Ch.2 E3AS error -->
+        <state_interface name="state_ch1"/>     <!-- IO-Link port 1 state (uint8) -->
+        <state_interface name="state_ch2"/>     <!-- IO-Link port 2 state (uint8) -->
+        <state_interface name="state_ch3"/>     <!-- IO-Link port 3 state (uint8) -->
+        <state_interface name="state_ch4"/>     <!-- IO-Link port 4 state (uint8) -->
+        <state_interface name="device_diag"/>   <!-- Aggregated device diagnostic flag -->
+        <state_interface name="device_state"/>  <!-- Aggregated device state flag -->
+
+        <ec_module name="EL6224">
+          <plugin>ethercat_generic_plugins/EL6224EcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">2</param>
+          <param name="slave_config">$(find ethercat_slave_description)/config/beckhoff/beckhoff_el6224.yaml</param>
+        </ec_module>
+      </gpio>
+
+      <!-- ─── EL1008 — 8-channel digital input 24 V, 3 ms (pos 3) ──── -->
+      <gpio name="digital_inputs">
+        <state_interface name="d_input.1"/>  <!-- 0.0 = low, 1.0 = high -->
+        <state_interface name="d_input.2"/>
+        <state_interface name="d_input.3"/>
+        <state_interface name="d_input.4"/>
+        <state_interface name="d_input.5"/>
+        <state_interface name="d_input.6"/>
+        <state_interface name="d_input.7"/>
+        <state_interface name="d_input.8"/>
+
+        <ec_module name="EL1008">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">3</param>
+          <param name="slave_config">$(find ethercat_slave_description)/config/beckhoff/beckhoff_el1008.yaml</param>
+        </ec_module>
+      </gpio>
+
+      <!-- ─── EL2622 — 2-channel relay output (pos 4) ────────────────── -->
+      <gpio name="relays">
+        <command_interface name="relay_1"/>   <!-- 0.0 = open, 1.0 = closed -->
+        <command_interface name="relay_2"/>   <!-- 0.0 = open, 1.0 = closed -->
+
+        <ec_module name="EL2622">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">4</param>
+          <param name="slave_config">$(find ethercat_slave_description)/config/beckhoff/beckhoff_el2622.yaml</param>
+        </ec_module>
+      </gpio>
+
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

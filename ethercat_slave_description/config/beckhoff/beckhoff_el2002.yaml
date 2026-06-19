@@ -1,0 +1,23 @@
+# Configuration file for Beckhoff EL2002
+# Description : EtherCAT Terminal, 2-channel digital output, 24 V DC, 0.5 A.
+#
+# Vendor ID:       0x00000002  (Beckhoff Automation)
+# Product code:    0x07d23052
+#
+# ros2_control command_interfaces produced:
+#   <gpio_name>/d_output.1
+#   <gpio_name>/d_output.2
+
+vendor_id: 0x00000002
+product_id: 0x07d23052
+
+rpdo:  # RxPDO = receive PDO Mapping (ROS control to slave)
+  - index: 0x1600  # Channel 1
+    channels:
+      - {index: 0x7000, sub_index: 0x01, type: bool, mask: 0x01, command_interface: d_output.1, default: 0}
+  - index: 0x1601  # Channel 2
+    channels:
+      - {index: 0x7010, sub_index: 0x01, type: bool, mask: 0x02, command_interface: d_output.2, default: 0}
+
+sm:  # Sync Manager
+  - {index: 0, type: output, pdo: rpdo, watchdog: enable}

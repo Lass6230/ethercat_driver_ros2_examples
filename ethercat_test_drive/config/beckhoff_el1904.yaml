@@ -1,0 +1,29 @@
+# Configuration file for Beckhoff EL1904
+vendor_id: 0x00000002
+product_id: 0x07703052
+
+rpdo:
+  - index: 0x1600
+    channels:
+      - {index: 0x7000, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x0000, sub_index: 0x00, type: int8}
+      - {skip: true, index: 0x7000, sub_index: 0x02, type: int16}
+      - {skip: true, index: 0x7000, sub_index: 0x03, type: int16}
+
+tpdo:
+  - index: 0x1a00
+    channels:
+      - {index: 0x6000, sub_index: 0x01, type: int8}
+      - {index: 0x6001, sub_index: 0x01, type: bit1, state_interface: estop_ch1}
+      - {index: 0x6001, sub_index: 0x02, type: bit1, state_interface: estop_ch2}
+      - {index: 0x6001, sub_index: 0x03, type: bit1, state_interface: estop_ch3}
+      - {index: 0x6001, sub_index: 0x04, type: bit1, state_interface: estop_ch4}
+      - {skip: true, index: 0x0000, sub_index: 0x00, type: bit4}
+      - {skip: true, index: 0x6000, sub_index: 0x03, type: int16}
+      - {skip: true, index: 0x6000, sub_index: 0x04, type: int16}
+
+sm:
+  - {index: 0, type: output, watchdog: disable}
+  - {index: 1, type: input, watchdog: disable}
+  - {index: 2, type: output, pdo: rpdo, watchdog: disable}
+  - {index: 3, type: input, pdo: tpdo, watchdog: disable}

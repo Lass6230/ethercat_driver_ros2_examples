@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="safety_test_drive">
+
+    <ros2_control name="ethercat_safety_test_system" type="system">
+      <hardware>
+        <plugin>ethercat_driver/EthercatDriver</plugin>
+        <param name="master_id">0</param>
+        <param name="control_frequency">1000</param>
+        <param name="transfer_config">$(find ethercat_test_drive)/config/el6900_el1904_el2904_fsoe.yaml</param>
+      </hardware>
+
+      <gpio name="el6900_gpio">
+        <command_interface name="safety_states_control"/>
+        <command_interface name="restart_standard_input"/>
+        <state_interface name="safety_project_state"/>
+        <state_interface name="login_active"/>
+        <state_interface name="input_size_mismatch"/>
+        <state_interface name="output_size_mismatch"/>
+        <state_interface name="txpdo_state"/>
+        <state_interface name="txpdo_toggle"/>
+        <ec_module name="el6900">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">7</param>
+          <param name="slave_config">$(find ethercat_test_drive)/config/beckhoff_el6900.yaml</param>
+        </ec_module>
+      </gpio>
+
+      <gpio name="el1904_gpio">
+        <state_interface name="estop_ch1"/>
+        <state_interface name="estop_ch2"/>
+        <state_interface name="estop_ch3"/>
+        <state_interface name="estop_ch4"/>
+        <ec_module name="el1904">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">8</param>
+          <param name="slave_config">$(find ethercat_test_drive)/config/beckhoff_el1904.yaml</param>
+        </ec_module>
+      </gpio>
+
+      <gpio name="el2904_gpio">
+        <ec_module name="el2904">
+          <plugin>ethercat_generic_plugins/GenericEcSlave</plugin>
+          <param name="alias">0</param>
+          <param name="position">9</param>
+          <param name="slave_config">$(find ethercat_test_drive)/config/beckhoff_el2904.yaml</param>
+        </ec_module>
+      </gpio>
+
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

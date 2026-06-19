@@ -1,0 +1,22 @@
+# Configuration file for Beckhoff EL2622
+# Description : EtherCAT Terminal, 2-channel relay output, NO (230V AC / 30V DC).
+#
+# Vendor ID:       0x00000002  (Beckhoff Automation)
+# Product code:    0x0a3e3052
+#
+# ros2_control command_interfaces (write 0.0 = open, 1.0 = closed):
+#   <gpio_name>/relay_1
+#   <gpio_name>/relay_2
+vendor_id: 0x00000002
+product_id: 0x0a3e3052
+rpdo:  # RxPDO = receive PDO Mapping (ROS control to slave, Master Out to Slave In -MOSI-)
+  - index: 0x1600  # Channel 1 — bit 0 of the process data byte
+    channels:
+      - {index: 0x7000, sub_index: 0x01, type: bool, mask: 0x01,
+         command_interface: relay_1, default: 0}
+  - index: 0x1601  # Channel 2 — bit 1 of the process data byte
+    channels:
+      - {index: 0x7010, sub_index: 0x01, type: bool, mask: 0x02,
+         command_interface: relay_2, default: 0}
+sm:  # Sync Manager
+  - {index: 0, type: output, pdo: rpdo, watchdog: enable}

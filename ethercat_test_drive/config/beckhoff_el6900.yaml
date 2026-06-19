@@ -1,0 +1,72 @@
+# Configuration file for Beckhoff EL6900 (TwinSAFE Logic)
+#
+# TwinSAFE group port → ROS control word (0xF200:01) bit mapping
+# (bit order = order of group port inputs in the TwinSAFE project GVLs)
+#
+#   Bit 0  (value 1)  →  GroupPort_ErrAck     (ErrorAcknowledgement.sds)
+#   Bit 1  (value 2)  →  GroupPort_RunStop     (Run.sds)
+#
+# Common values to write to safety_states_control:
+#   0  → all group ports LOW  (safety stopped)
+#   2  → Run=1, ErrAck=0     (normal running)
+#   3  → Run=1, ErrAck=1     (running + acknowledge error)
+# Restart is provided by TwinSAFE Standard Input 1 (PDO 0x17f0 -> 0x6000:01).
+#
+vendor_id: 0x00000002
+product_id: 0x1af43052
+
+rpdo:
+  - index: 0x1600  # FSoE RxPDO-Map 001 (EL1904 channel)
+    channels:
+      - {index: 0x7000, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x7001, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x7000, sub_index: 0x03, type: int16}
+      - {skip: true, index: 0x7000, sub_index: 0x02, type: int16}
+  - index: 0x1601  # FSoE RxPDO-Map 002 (EL2904 channel)
+    channels:
+      - {index: 0x7010, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x7011, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x7010, sub_index: 0x03, type: int16}
+      - {skip: true, index: 0x7010, sub_index: 0x02, type: int16}
+  - index: 0x17f0  # DEVICE RxPDO-Map Standard In Vars
+    channels:
+      - {index: 0x6000, sub_index: 0x01, type: bit1, command_interface: restart_standard_input, default: 0}
+      - {skip: true, index: 0x6000, sub_index: 0x02, type: bit1}
+      - {skip: true, index: 0x6000, sub_index: 0x03, type: bit1}
+      - {skip: true, index: 0x0000, sub_index: 0x00, type: bit5}
+  - index: 0x17ff  # DEVICE RxPDO-Map Control — written by ROS master
+    channels:
+      # 0xF200:01 = 16-bit control word.  Bit 0=ErrAck, Bit 1=Run/Stop
+      - {index: 0xf200, sub_index: 0x01, type: int16, command_interface: safety_states_control, default: 0}
+
+tpdo:
+  - index: 0x1a00
+    channels:
+      - {index: 0x6000, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x6001, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x6000, sub_index: 0x03, type: int16}
+      - {skip: true, index: 0x6000, sub_index: 0x02, type: int16}
+  - index: 0x1a01
+    channels:
+      - {index: 0x6010, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x6011, sub_index: 0x01, type: int8}
+      - {skip: true, index: 0x6010, sub_index: 0x03, type: int16}
+      - {skip: true, index: 0x6010, sub_index: 0x02, type: int16}
+  - index: 0x1bff  # DEVICE TxPDO-Map Status — read by ROS master
+    channels:
+      # Safety Project State (0xF100:01) numeric meaning can differ by
+      # project/firmware. Use TwinCAT CoE labels as the source of truth.
+      - {index: 0xf100, sub_index: 0x01, type: bit3, state_interface: safety_project_state}
+      - {skip: true, index: 0x0000, sub_index: 0x00, type: bit4}  # gap
+      - {index: 0xf100, sub_index: 0x08, type: bit1, state_interface: login_active}
+      - {index: 0xf100, sub_index: 0x09, type: bit1, state_interface: input_size_mismatch}
+      - {index: 0xf100, sub_index: 0x0a, type: bit1, state_interface: output_size_mismatch}
+      - {skip: true, index: 0x0000, sub_index: 0x00, type: bit4}  # gap
+      - {index: 0xf100, sub_index: 0x0f, type: bit1, state_interface: txpdo_state}
+      - {index: 0xf100, sub_index: 0x10, type: bit1, state_interface: txpdo_toggle}
+
+sm:
+  - {index: 0, type: output, watchdog: disable}
+  - {index: 1, type: input, watchdog: disable}
+  - {index: 2, type: output, pdo: rpdo, watchdog: disable}
+  - {index: 3, type: input, pdo: tpdo, watchdog: disable}

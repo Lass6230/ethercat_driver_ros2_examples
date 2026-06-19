@@ -7,4 +7,10 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+    scripts/generate_el6224_from_iodd.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

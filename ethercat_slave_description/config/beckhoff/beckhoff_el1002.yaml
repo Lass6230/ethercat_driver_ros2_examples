@@ -1,0 +1,23 @@
+# Configuration file for Beckhoff EL1002
+# Description : EtherCAT Terminal, 2-channel digital input, 24 V DC, 3 ms.
+#
+# Vendor ID:       0x00000002  (Beckhoff Automation)
+# Product code:    0x03ea3052
+#
+# ros2_control state_interfaces produced:
+#   <gpio_name>/d_input.1
+#   <gpio_name>/d_input.2
+
+vendor_id: 0x00000002
+product_id: 0x03ea3052
+
+tpdo:  # TxPDO = transmit PDO Mapping (slave to ROS control)
+  - index: 0x1a00  # Channel 1
+    channels:
+      - {index: 0x6000, sub_index: 0x01, type: bool, mask: 0x01, state_interface: d_input.1}
+  - index: 0x1a01  # Channel 2
+    channels:
+      - {index: 0x6010, sub_index: 0x01, type: bool, mask: 0x02, state_interface: d_input.2}
+
+sm:  # Sync Manager
+  - {index: 0, type: input, pdo: tpdo, watchdog: disable}

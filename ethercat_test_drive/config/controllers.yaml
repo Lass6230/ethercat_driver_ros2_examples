@@ -1,0 +1,74 @@
+# ============================================================================
+# controllers.yaml — ethercat_test_drive
+#
+# Single GpioCommandController managing all four I/O modules on the bus.
+#
+#   OUTPUT modules (command_interfaces):
+#     digital_outputs → d_output.1, d_output.2              (EL2002, pos 1)
+#     relays          → relay_1, relay_2                    (EL2622, pos 4)
+#
+#   INPUT modules (state_interfaces):
+#     iolink_sensor   → distance + Ch2 E3AS fields + states  (EL6224, pos 2)
+#     digital_inputs  → d_input.1 … d_input.8               (EL1008, pos 3)
+#
+# Topics:
+#   /gpio_controller/commands     (control_msgs/msg/DynamicInterfaceGroupValues)
+#   /gpio_controller/gpio_states  (control_msgs/msg/DynamicInterfaceGroupValues)
+# ============================================================================
+
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    gpio_controller:
+      type: gpio_controllers/GpioCommandController
+
+# --------------------------------------------------------------------------
+gpio_controller:
+  ros__parameters:
+    gpios:
+      - relays
+      - digital_inputs
+      - digital_outputs
+      - iolink_sensor
+
+    # Command interfaces — writable outputs
+    command_interfaces:
+      relays:
+        interfaces:
+          - relay_1
+          - relay_2
+      digital_outputs:
+        interfaces:
+          - d_output.1
+          - d_output.2
+
+    # State interfaces — read-only inputs
+    state_interfaces:
+      digital_inputs:
+        interfaces:
+          - d_input.1
+          - d_input.2
+          - d_input.3
+          - d_input.4
+          - d_input.5
+          - d_input.6
+          - d_input.7
+          - d_input.8
+      iolink_sensor:
+        interfaces:
+          - distance
+          - detection_value_ch2
+          - light_intensity_ch2
+          - control_output1_ch2
+          - control_output2_ch2
+          - instability_alarm_ch2
+          - error_low_light_ch2
+          - warning_ch2
+          - error_ch2
+          - state_ch1
+          - state_ch2
+          - state_ch3
+          - state_ch4
+          - device_diag
+          - device_state

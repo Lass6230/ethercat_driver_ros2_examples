@@ -1,6 +1,42 @@
 # ethercat_slave_description
 Collection of EtherCAT module example configurations for the `ethercat_driver`.
 
+## See also
+- [EL6224 IO-Link setup, configuration, ROS 2 usage, and troubleshooting](../../../../README_EL6224_IO_LINK.md)
+
+## Automatic IODD-driven EL6224 setup
+You can auto-generate EL6224 port startup SDO settings from an IODD XML file:
+
+```bash
+ros2 run ethercat_slave_description generate_el6224_from_iodd.py \
+  --iodd /path/to/SICK-DT35-DL35-20200224-IODD1.1.xml \
+  --port 1 \
+  --mode specific \
+  --frame-capability-source comspeed \
+  --update-yaml /path/to/beckhoff_el6224.yaml
+```
+
+Notes:
+- `--mode specific` writes Device ID / Vendor ID / revision / m-sequence / PD lengths from the IODD.
+- `--mode auto` only sets selected port to IO-Link Auto mode.
+- `--frame-capability-source comspeed` maps IODD bitrate (`COM1/COM2/COM3`) to `0/1/2` for `0x80n0:21`.
+- `--frame-capability-source mseq` writes raw IODD `mSequenceCapability` to `0x80n0:21`.
+- The script deactivates other EL6224 ports by default to avoid parallel probing.
+- It prints a suggested TxPDO channel mapping for the selected port (`0x6000/0x6010/0x6020/0x6030 :01`).
+
+## Decode EL6224 process data
+Use the decoder script to translate raw process data words into readable sensor values:
+
+```bash
+python3 src/ethercat_driver_ros2_examples/ethercat_slave_description/scripts/decode_el6224_values.py --position 2
+```
+
+Watch mode:
+
+```bash
+python3 src/ethercat_driver_ros2_examples/ethercat_slave_description/scripts/decode_el6224_values.py --position 2 --watch --interval 0.3
+```
+
 ## Modules using `GenericEcSlave`
 The list of available example EtherCAT module configurations for the `GenericEcSlave` Hardware Interface plugin.
 ### Beckhoff
